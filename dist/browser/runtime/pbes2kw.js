@@ -3,10 +3,10 @@ import { p2s as concatSalt } from '../lib/buffer_utils.js';
 import { encode as base64url } from './base64url.js';
 import { wrap, unwrap } from './aeskw.js';
 import checkP2s from '../lib/check_p2s.js';
-import crypto, { isCryptoKey } from './webcrypto.js';
+import crypto, { isCryptoKey, transformOperation } from './webcrypto.js';
 function getCryptoKey(key) {
     if (key instanceof Uint8Array) {
-        return crypto.subtle.importKey('raw', key, 'PBKDF2', false, ['deriveBits']);
+        return transformOperation(crypto.subtle.importKey('raw', key, 'PBKDF2', false, ['deriveBits']));
     }
     if (isCryptoKey(key)) {
         return key;
@@ -30,10 +30,10 @@ export const encrypt = async (alg, key, cek, p2c = Math.floor(Math.random() * 20
     const cryptoKey = await getCryptoKey(key);
     let derived;
     if (cryptoKey.usages.includes('deriveBits')) {
-        derived = new Uint8Array(await crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen));
+        derived = new Uint8Array(await transformOperation(crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen)));
     }
     else if (cryptoKey.usages.includes('deriveKey')) {
-        derived = await crypto.subtle.deriveKey(subtleAlg, cryptoKey, wrapAlg, false, ['wrapKey']);
+        derived = await transformOperation(crypto.subtle.deriveKey(subtleAlg, cryptoKey, wrapAlg, false, ['wrapKey']));
     }
     else {
         throw new TypeError('PBKDF2 key "usages" must include "deriveBits" or "deriveKey"');
@@ -58,10 +58,10 @@ export const decrypt = async (alg, key, encryptedKey, p2c, p2s) => {
     const cryptoKey = await getCryptoKey(key);
     let derived;
     if (cryptoKey.usages.includes('deriveBits')) {
-        derived = new Uint8Array(await crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen));
+        derived = new Uint8Array(await transformOperation(crypto.subtle.deriveBits(subtleAlg, cryptoKey, keylen)));
     }
     else if (cryptoKey.usages.includes('deriveKey')) {
-        derived = await crypto.subtle.deriveKey(subtleAlg, cryptoKey, wrapAlg, false, ['unwrapKey']);
+        derived = await transformOperation(crypto.subtle.deriveKey(subtleAlg, cryptoKey, wrapAlg, false, ['unwrapKey']));
     }
     else {
         throw new TypeError('PBKDF2 key "usages" must include "deriveBits" or "deriveKey"');

@@ -3,16 +3,16 @@ import checkIvLength from '../lib/check_iv_length.js';
 import checkCekLength from './check_cek_length.js';
 import timingSafeEqual from './timing_safe_equal.js';
 import { JWEDecryptionFailed } from '../util/errors.js';
-import crypto, { isCryptoKey } from './webcrypto.js';
+import crypto, { isCryptoKey, transformOperation } from './webcrypto.js';
 async function cbcDecrypt(enc, cek, ciphertext, iv, tag, aad) {
     const keySize = parseInt(enc.substr(1, 3), 10);
-    const encKey = await crypto.subtle.importKey('raw', cek.subarray(keySize >> 3), 'AES-CBC', false, ['decrypt']);
-    const macKey = await crypto.subtle.importKey('raw', cek.subarray(0, keySize >> 3), {
+    const encKey = await transformOperation(crypto.subtle.importKey('raw', cek.subarray(keySize >> 3), 'AES-CBC', false, ['decrypt']));
+    const macKey = await transformOperation(crypto.subtle.importKey('raw', cek.subarray(0, keySize >> 3), {
         hash: { name: `SHA-${keySize << 1}` },
         name: 'HMAC',
-    }, false, ['sign']);
+    }, false, ['sign']));
     const macData = concat(aad, iv, ciphertext, uint64be(aad.length << 3));
-    const expectedTag = new Uint8Array((await crypto.subtle.sign('HMAC', macKey, macData)).slice(0, keySize >> 3));
+    const expectedTag = new Uint8Array((await transformOperation(crypto.subtle.sign('HMAC', macKey, macData)).slice(0, keySize >> 3)));
     let macCheckPassed;
     try {
         macCheckPassed = timingSafeEqual(tag, expectedTag);
@@ -24,7 +24,7 @@ async function cbcDecrypt(enc, cek, ciphertext, iv, tag, aad) {
     }
     let plaintext;
     try {
-        plaintext = new Uint8Array(await crypto.subtle.decrypt({ iv, name: 'AES-CBC' }, encKey, ciphertext));
+        plaintext = new Uint8Array(await transformOperation(crypto.subtle.decrypt({ iv, name: 'AES-CBC' }, encKey, ciphertext)));
     }
     catch (_b) {
     }
@@ -35,15 +35,15 @@ async function cbcDecrypt(enc, cek, ciphertext, iv, tag, aad) {
 }
 async function gcmDecrypt(cek, ciphertext, iv, tag, aad) {
     const encKey = cek instanceof Uint8Array
-        ? await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt'])
+        ? await transformOperation(crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']))
         : cek;
     try {
-        return new Uint8Array(await crypto.subtle.decrypt({
+        return new Uint8Array(await transformOperation(crypto.subtle.decrypt({
             additionalData: aad,
             iv,
             name: 'AES-GCM',
             tagLength: 128,
-        }, encKey, concat(ciphertext, tag)));
+        }, encKey, concat(ciphertext, tag))));
     }
     catch (err) {
         throw new JWEDecryptionFailed();

@@ -1,4 +1,4 @@
-import crypto from './webcrypto.js';
+import crypto, { transformOperation } from './webcrypto.js';
 import { JOSENotSupported } from '../util/errors.js';
 import { decode as base64url } from './base64url.js';
 function subtleMapping(jwk) {
@@ -107,6 +107,6 @@ const parse = async (jwk) => {
         format = 'raw';
         keyData = base64url(jwk.k);
     }
-    return crypto.subtle.importKey(format, keyData, algorithm, (_a = jwk.ext) !== null && _a !== void 0 ? _a : false, (_b = jwk.key_ops) !== null && _b !== void 0 ? _b : keyUsages);
+    return transformOperation(crypto.subtle.importKey(format, keyData, algorithm, (_a = jwk.ext) !== null && _a !== void 0 ? _a : false, (_b = jwk.key_ops) !== null && _b !== void 0 ? _b : keyUsages));
 };
 export default parse;

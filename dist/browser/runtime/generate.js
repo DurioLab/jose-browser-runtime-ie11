@@ -1,4 +1,4 @@
-import crypto from './webcrypto.js';
+import crypto, { transformOperation } from './webcrypto.js';
 import { JOSENotSupported } from '../util/errors.js';
 import random from './random.js';
 export async function generateSecret(alg, options) {
@@ -39,7 +39,7 @@ export async function generateSecret(alg, options) {
         default:
             throw new JOSENotSupported('unsupported or invalid JWK "alg" (Algorithm) Parameter value');
     }
-    return (crypto.subtle.generateKey(algorithm, (_a = options === null || options === void 0 ? void 0 : options.extractable) !== null && _a !== void 0 ? _a : false, keyUsages));
+    return transformOperation(crypto.subtle.generateKey(algorithm, (_a = options === null || options === void 0 ? void 0 : options.extractable) !== null && _a !== void 0 ? _a : false, keyUsages));
 }
 function getModulusLengthOption(options) {
     var _a;
@@ -110,5 +110,5 @@ export async function generateKeyPair(alg, options) {
         default:
             throw new JOSENotSupported('unsupported or invalid JWK "alg" (Algorithm) Parameter value');
     }
-    return (crypto.subtle.generateKey(algorithm, (_b = options === null || options === void 0 ? void 0 : options.extractable) !== null && _b !== void 0 ? _b : false, keyUsages));
+    return transformOperation(crypto.subtle.generateKey(algorithm, (_b = options === null || options === void 0 ? void 0 : options.extractable) !== null && _b !== void 0 ? _b : false, keyUsages));
 }
